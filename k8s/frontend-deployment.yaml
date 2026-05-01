@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-anomaly-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: log-anomaly-frontend
+  template:
+    metadata:
+      labels:
+        app: log-anomaly-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: log-anomaly-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8501
+
+        env:
+        - name: API_URL
+          value: "http://log-anomaly-backend:8000"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # 🔥 FIXED: give Streamlit enough startup time
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-anomaly-frontend
+spec:
+  selector:
+    app: log-anomaly-frontend
+  ports:
+  - port: 8501
+    targetPort: 8501
+    nodePort: 30007
+  type: NodePort
