@@ -15,7 +15,7 @@ spec:
       containers:
       - name: frontend
         image: ghcr.io/rajeshrajgor25/log-anomaly-project/frontend:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 8501
 
