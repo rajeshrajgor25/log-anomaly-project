@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: log-anomaly-backend:latest
+        image: ghcr.io/rajeshrajgor25/log-anomaly-project/backend:latest
         imagePullPolicy: IfNotPresent
 
         ports:
