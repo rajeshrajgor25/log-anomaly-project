@@ -32,7 +32,7 @@ spec:
             memory: "512Mi"
             cpu: "500m"
 
-        # 🔥 Better probe tuning
+        # Health checks
         livenessProbe:
           httpGet:
             path: /health

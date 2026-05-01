@@ -68,29 +68,30 @@ jobs:
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
 
   deploy:
-    needs: [backend, frontend]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
+  if: false   # 🔥 disables this job completely
+  needs: [backend, frontend]
+  runs-on: ubuntu-latest
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Set kubeconfig
-        run: echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v4
 
-      - name: Deploy backend
-        run: |
-          kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-backend \
-          backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+    - name: Set kubeconfig
+      run: echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
 
-      - name: Deploy frontend
-        run: |
-          kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-frontend \
-          frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+    - name: Deploy backend
+      run: |
+        kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-backend \
+        backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
 
-      - name: Verify rollout
-        run: |
-          kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-backend
-          kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-frontend
+    - name: Deploy frontend
+      run: |
+        kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-frontend \
+        frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+
+    - name: Verify rollout
+      run: |
+        kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-backend
+        kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-frontend

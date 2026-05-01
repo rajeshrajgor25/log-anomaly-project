@@ -16,6 +16,7 @@ spec:
       - name: frontend
         image: ghcr.io/rajeshrajgor25/log-anomaly-project/frontend:latest
         imagePullPolicy: Always
+
         ports:
         - containerPort: 8501
 
@@ -33,7 +34,7 @@ spec:
             memory: "512Mi"
             cpu: "500m"
 
-        # 🔥 FIXED: give Streamlit enough startup time
+        # Streamlit health checks
         livenessProbe:
           httpGet:
             path: /_stcore/health
