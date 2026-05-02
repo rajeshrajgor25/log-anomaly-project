@@ -9,7 +9,8 @@ import os
 from typing import List, Dict, Any
 
 # Configuration
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+
+API_BASE_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
 def check_api_health() -> bool:
