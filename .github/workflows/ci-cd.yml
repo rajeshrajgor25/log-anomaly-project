@@ -7,7 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # FIX: suppress Node.js 20 warnings
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   backend:
@@ -72,6 +72,9 @@ jobs:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
     environment: production
+    if: false   # Disabled: minikube runs locally and is not reachable from GitHub runners.
+                # To enable: set up a self-hosted runner OR use a cloud k8s cluster
+                # and replace KUBECONFIG_B64 secret with that cluster's kubeconfig.
     steps:
       - uses: actions/checkout@v4
 
@@ -79,8 +82,6 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Set kubeconfig
-        # FIX: use only KUBECONFIG_B64 — removed the broken env: block
-        # that was overwriting $KUBECONFIG with raw base64 text
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
