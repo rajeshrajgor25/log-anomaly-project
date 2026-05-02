@@ -68,30 +68,45 @@ jobs:
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
 
   deploy:
-  if: false   # 🔥 disables this job completely
-  needs: [backend, frontend]
-  runs-on: ubuntu-latest
-
-  steps:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
     - uses: actions/checkout@v4
 
     - name: Setup kubectl
       uses: azure/setup-kubectl@v4
 
     - name: Set kubeconfig
-      run: echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+      env:
+        KUBECONFIG: ${{ secrets.KUBECONFIG_B64 }}
+
+    - name: Verify deployments exist
+      run: |
+        kubectl get deployment log-anomaly-backend -n production || exit 1
+        kubectl get deployment log-anomaly-frontend -n production || exit 1
 
     - name: Deploy backend
       run: |
-        kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-backend \
-        backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+        kubectl set image deployment/log-anomaly-backend \
+        backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }} \
+        -n production
 
     - name: Deploy frontend
       run: |
-        kubectl --kubeconfig=kubeconfig.yaml set image deployment/log-anomaly-frontend \
-        frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+        kubectl set image deployment/log-anomaly-frontend \
+        frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+        -n production
 
     - name: Verify rollout
       run: |
-        kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-backend
-        kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/log-anomaly-frontend
+        kubectl rollout status deployment/log-anomaly-backend -n production --timeout=5m
+        kubectl rollout status deployment/log-anomaly-frontend -n production --timeout=5m
+
+    - name: Cleanup kubeconfig
+      if: always()
+      run: rm -f $HOME/.kube/config
