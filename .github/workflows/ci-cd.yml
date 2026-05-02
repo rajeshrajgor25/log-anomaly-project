@@ -7,6 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # FIX: suppress Node.js 20 warnings
 
 jobs:
   backend:
@@ -72,39 +73,41 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
 
-    - name: Set kubeconfig
-      run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
+      - name: Set kubeconfig
+        # FIX: use only KUBECONFIG_B64 — removed the broken env: block
+        # that was overwriting $KUBECONFIG with raw base64 text
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
 
-    - name: Verify deployments exist
-      run: |
-        kubectl get deployment log-anomaly-backend -n production || exit 1
-        kubectl get deployment log-anomaly-frontend -n production || exit 1
+      - name: Verify deployments exist
+        run: |
+          kubectl get deployment log-anomaly-backend -n production || exit 1
+          kubectl get deployment log-anomaly-frontend -n production || exit 1
 
-    - name: Deploy backend
-      run: |
-        kubectl set image deployment/log-anomaly-backend \
-        backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }} \
-        -n production
+      - name: Deploy backend
+        run: |
+          kubectl set image deployment/log-anomaly-backend \
+          backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }} \
+          -n production
 
-    - name: Deploy frontend
-      run: |
-        kubectl set image deployment/log-anomaly-frontend \
-        frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
-        -n production
+      - name: Deploy frontend
+        run: |
+          kubectl set image deployment/log-anomaly-frontend \
+          frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }} \
+          -n production
 
-    - name: Verify rollout
-      run: |
-        kubectl rollout status deployment/log-anomaly-backend -n production --timeout=5m
-        kubectl rollout status deployment/log-anomaly-frontend -n production --timeout=5m
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/log-anomaly-backend -n production --timeout=5m
+          kubectl rollout status deployment/log-anomaly-frontend -n production --timeout=5m
 
-    - name: Cleanup kubeconfig
-      if: always()
-      run: rm -f $HOME/.kube/config
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f $HOME/.kube/config
